@@ -1,0 +1,223 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <!-- Required meta tags -->
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- Bootstrap CSS -->
+  <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+  <!-- 카카오 지도 JS -->
+  <script type="text/javascript"
+    src="//dapi.kakao.com/v2/maps/sdk.js?appkey=3e8616a88195c785dcdbabcd139a06e0&libraries=services,clusterer,drawin">
+  </script>
+  <script type="text/javascript" src="/static/js/bootstrap.min.js">
+  </script>
+  <script type="text/javascript" src="/static/js/jquery-3.6.0.min.js">
+  </script>
+
+  <title>Elice Project</title>
+</head>
+
+<body>
+  <main>
+    <div class="container-fluid py-4">
+      <nav class="navbar navbar-light border-bottom mb-4">
+        <div class="container-fluid">
+          <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+            <img src="/static/img/elice_logo_2.png" height="30" class="d-inline-block align-text-top">
+            <span class="ps-2 fs-4">Elice Vaccine Center</span>
+          </a>
+          <form class="d-flex">
+            {% if g.username %}
+            <a href="{{ url_for('auth.signout') }}">
+              <button type="button" class="btn btn-outline-primary mx-1">로그아웃</button>
+            </a>
+            {% else %}
+            <a href="{{ url_for('auth.signin') }}">
+              <button type="button" class="btn btn-outline-primary mx-1">로그인</button>
+            </a>
+            <a href="{{ url_for('auth.signup') }}">
+              <button type="button" class="btn btn-outline-primary ms-1">회원가입</button>
+            </a>
+            {% endif %}
+          </form>
+        </div>
+      </nav>
+
+      <div class="p-5 mb-5 bg-secondary rounded-3 text-center">
+        <div class="container-fluid py-5 text-white">
+          <h1 class="display-6 fw-bold">엘리스 예방접종센터 조회 서비스</h1>
+          <span class="lead col-md-7 fs-5">엘리스에서 직접 개발한 멜론아19 백신인 엘리자를 접종할 수 있는 병원을 알려드립니다!</span>
+        </div>
+      </div>
+
+      <div class="table-responsive">
+        <div class="d-flex flex-row">
+          <div class="container-fluid">
+            <div class="d-flex flex-row">
+              <select id="searchType" class="form-select me-3" style="max-width:15%; height:100%;">
+                <option value="name">센터명</option>
+                <option value="addr">주소</option>
+              </select>
+              <input type="text" class="form-control mb-3" id="searchBox" placeholder="검색">
+            </div>
+
+            <table class="table table-hover table-bordered">
+              <thead class="table-light">
+                <tr>
+                  <th scope="col">센터유형</th>
+                  <th scope="col">센터명</th>
+                  <th scope="col">시설명</th>
+                  <th scope="col">주소</th>
+                  <th scope="col">전화번호</th>
+                </tr>
+              </thead>
+              <tbody id="resultBody">
+              </tbody>
+            </table>
+
+            <nav>
+              <ul class="pagination justify-content-center" id="pagination">
+                <li class="page-item">
+                  <a class="page-link" data-page="1" href="#" aria-label="Previous">
+                    &laquo;
+                  </a>
+                </li>
+                <li class="page-item"><a class="page-link" data-page="1" href="#">1</a></li>
+                <li class="page-item" id="last-page">
+                  <a class="page-link" href="#" aria-label="Next">
+                    &raquo;
+                  </a>
+                </li>
+              </ul>
+            </nav>
+          </div>
+
+          <div id="map" style="width:1024px; height:650px"></div>
+        </div>
+        <script>
+          var mapContainer = document.getElementById('map'), // 지도를 표시할 div 
+            mapOption = {
+              center: new kakao.maps.LatLng(37.5666805, 126.9784147), // 지도의 중심좌표
+              level: 3 // 지도의 확대 레벨
+            };
+
+          var map = new kakao.maps.Map(mapContainer, mapOption); // 지도를 생성합니다
+          var markerList = []
+
+          var searchBox = document.getElementById('searchBox');
+          var resultBody = document.getElementById('resultBody');
+          var searchType = document.getElementById('searchType');
+          var pagination = document.getElementById('pagination')
+          var lastPage = document.getElementById('last-page')
+
+          var searchQuery = null;
+          var searchPage = 1;
+
+          searchBox.onkeydown = function (e) {
+            if (e.keyCode != 13) return;
+            searchQuery = searchBox.value;
+            searchPage = 1;
+            searchCenter();
+          }
+
+          function clearMarkers() {
+            setMarker(null);
+            markerList = []
+          }
+
+          function setMarker(map) {
+            markerList.forEach(item => {
+              item.setMap(map);
+            });
+          }
+
+          function searchCenter() {
+            $.ajax({
+              type: "GET",
+              url: "/search/center?q=" + searchQuery + "&type=" + searchType.value + "&page=" + searchPage,
+              dataType: 'json',
+              success: function (res) {
+                // 마커 삭제
+                clearMarkers();
+                resultBody.innerHTML = '';
+
+                res.result.forEach(center => {
+                  // 리스트 추가
+                  resultBody.innerHTML += '<tr onclick="selectCenter(this);" data-lat="' + center.lat +
+                    '" data-lng="' + center.lng +
+                    '" style="cursor:pointer;"><th scope="row">' + center.centerType +
+                    '</th><td>' + center.centerName +
+                    '</td><td>' + center.facilityName +
+                    '</td><td>' + center.full_address +
+                    '</td><td>' + center.phoneNumber +
+                    '</td></tr>';
+
+                  // 마커 추가
+                  var marker = new kakao.maps.Marker({
+                    title: center.facilityName,
+                    position: new kakao.maps.LatLng(center.lat, center.lng),
+                  });
+                  markerList.push(marker);
+                });
+
+                // 기존 페이지 제거
+                for (var i = 0; i < pagination.children.length; i++) {
+                  if (i === 0) continue;
+                  else if (pagination.children[i] === lastPage) break;
+                  pagination.removeChild(pagination.children[i--]);
+                }
+
+                // 페이지 추가
+                var template = document.createElement('template');
+                for (var i = 1; i <= parseInt(res.totalPage); i++) {
+                  template.innerHTML =
+                    '<li class="page-item"><a class="page-link" data-page="' + i +
+                    '" href="#">' + i +
+                    '</a></li>';
+                  pagination.insertBefore(template.content.firstChild, lastPage);
+                }
+
+                lastPage.children[0].dataset.page = res.totalPage;
+
+                // 페이지 이벤트 등록
+                var pageList = document.getElementsByClassName('page-item');
+                for (var i = 0; i < pageList.length; i++) {
+                  pageList[i].addEventListener('click', selectPage, false);
+                }
+
+                // 마커 등록
+                setMarker(map);
+              },
+              error: function (request, status, error) {
+                res = JSON.parse(request.responseText);
+                alert(res.message);
+                // 마커 삭제
+                clearMarkers();
+              }
+            });
+          }
+
+          function selectPage(e) {
+            var sender = e.target;
+            if (sender.dataset.page != null) {
+              searchPage = parseInt(sender.dataset.page);
+              searchCenter();
+            }
+          }
+
+          function selectCenter(sender) {
+            var lat = sender.dataset.lat
+            var lng = sender.dataset.lng
+            map.setCenter(new kakao.maps.LatLng(lat, lng));
+            map.setLevel(3);
+          }
+        </script>
+      </div>
+    </div>
+  </main>
+</body>
+
+</html>

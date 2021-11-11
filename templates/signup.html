@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- Bootstrap CSS -->
+    <link href="/static/css/bootstrap.min.css" rel="stylesheet">
+
+    <title>Elice Project</title>
+</head>
+
+<body>
+    <main>
+        <div class="container-fluid py-4">
+            <nav class="navbar navbar-light border-bottom mb-4">
+                <div class="container-fluid">
+                    <a href="/" class="d-flex align-items-center text-dark text-decoration-none">
+                        <img src="/static/img/elice_logo_2.png" height="30" class="d-inline-block align-text-top">
+                        <span class="ps-2 fs-4">Elice Vaccine Center</span>
+                    </a>
+                    <form class="d-flex">
+                        <a href="{{ url_for('auth.signin') }}">
+                            <button type="button" class="btn btn-outline-primary ms-1">로그인</button>
+                        </a>
+                    </form>
+                </div>
+            </nav>
+
+            <div class="p-5 mb-3 bg-secondary rounded-3 text-center">
+                <div class="container-fluid py-5 text-white">
+                    <h1 class="display-6 fw-bold">회원가입</h1>
+                </div>
+            </div>
+
+            <div class="container-fluid">
+                {% for message in get_flashed_messages() %}
+                <div class="alert alert-warning text-center" role="alert">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                <div class="card text-center">
+                    <div class="card-body">
+                        <form method="POST">
+                            <div class="mb-3 row justify-content-center">
+                                <label for="inputUsername" class="col-sm-1 col-form-label">아이디</label>
+                                <div class="col-sm-3">
+                                    <input type="username" class="form-control" name="username" required>
+                                </div>
+                            </div>
+
+                            <div class="mb-3 row justify-content-center">
+                                <label for="inputPassword" class="col-sm-1 col-form-label">비밀번호</label>
+                                <div class="col-sm-3">
+                                    <input type="password" class="form-control" name="password" required>
+                                </div>
+                            </div>
+
+                            <div class="col-auto">
+                                <button type="submit" class="btn btn-primary btn-lg">회원가입</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</body>
+
+</html>
